@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QDataStream>
 #include <vector>
 #include "Facet.hpp"
 
@@ -44,8 +45,9 @@ public:
      * @brief Saves the mesh in binary stl format. Filename can be Unicode
      * @param path: the path to the file
      * @param header: the additional data you can add to the file (80 bytes max)
+     * @param len: the length of the passed data (80 max)
      */
-    void save(QString path, const char* header = nullptr);
+    void save(QString path, const char* header = nullptr, std::size_t len = 0);
 
     /**
      * Destructor
@@ -133,12 +135,15 @@ public:
      */
     const Facet::Point* coords_normal(const std::size_t ti) const;
 
-protected:
+private:
 
     bool is_binary(QString path);
     void load_binary(QString path);
     void compute_stats();
     void load_ascii(QString path);
+
+    void add_float_to_stl(QDataStream& out, float what);
+    void add_int_to_stl(QDataStream& out, int what);
 
     std::vector<Facet> mFacets;
     std::vector<Facet> mOldFacets;

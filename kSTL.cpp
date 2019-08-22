@@ -3,6 +3,7 @@
 #include <sstream>
 #include <QFile>
 #include <QTextStream>
+#include <QDataStream>
 #include <iostream>
 
 using namespace kSTL;
@@ -218,9 +219,47 @@ void Mesh::load_binary(QString path)
     fp.close();
 }
 
-void Mesh::save(QString path, const char* header)
+void Mesh::save(QString path, const char* header, std::size_t len)
 {
-    // TODO
+    QFile fp(path);
+
+    if (!fp.open(QIODevice::ReadWrite)) {
+        fp.close();
+        throw std::invalid_argument("SAVE: Couldnt open file " + path.toStdString());
+    }
+
+    QDataStream out(&fp);
+    out.setByteOrder(QDataStream::LittleEndian);
+
+    char zero = 0;
+    if (header == nullptr || len == 0 || len > 80) {
+        out.writeRawData(&zero, 80);
+    } else {
+        out.writeRawData(header, static_cast<int>(len));
+        if (80 - len > 0) {
+            out.writeRawData(&zero, static_cast<int>(80 - len));
+        }
+    }
+
+    this->add_int_to_stl(out, static_cast<int>(this->num_triangles()));
+
+    for (std::size_t i = 0; i < this->num_triangles(); i++) {
+
+        const float* triNormals = this->mFacets[i].get_normal()->data();
+        for (unsigned int j = 0; j < 3; ++j) {
+            this->add_float_to_stl(out, triNormals[j]);
+        }
+
+        for (unsigned int j = 0; j < 3; ++j) {
+            const float* triCoords = this->mFacets[i].get_corner(j)->data();
+            for (unsigned int k = 0; k < 3; ++k) {
+                this->add_float_to_stl(out, triCoords[k]);
+            }
+        }
+        out.writeRawData(&zero, 2);
+    }
+
+    fp.close();
 }
 
 void Mesh::reset()
@@ -316,4 +355,14 @@ void Mesh::compute_stats() {
     this->mSize[0] = this->mMax[0] - this->mMin[0];
     this->mSize[1] = this->mMax[1] - this->mMin[1];
     this->mSize[2] = this->mMax[2] - this->mMin[2];
+}
+
+void Mesh::add_float_to_stl(QDataStream& out, float what) {
+    char* val = reinterpret_cast<char *>(&what);
+    out.writeRawData(val, 4);
+}
+
+void Mesh::add_int_to_stl(QDataStream& out, int what) {
+    char* val = reinterpret_cast<char *>(&what);
+    out.writeRawData(val, 4);
 }
