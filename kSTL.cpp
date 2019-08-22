@@ -345,6 +345,9 @@ const Facet::Point* Mesh::coords_normal(const std::size_t ti) const {
 
 void Mesh::compute_stats() {
 
+    this->mMin.fill(std::numeric_limits<float>::max());
+    this->mMax.fill(std::numeric_limits<float>::min());
+
     for (std::size_t i = 0; i < this->mFacets.size(); ++i) {
         for (std::size_t j = 0; j < 3; ++j) {
             this->mMin[j] = std::min(this->mMin[j], this->mFacets[i].get_min(j));
